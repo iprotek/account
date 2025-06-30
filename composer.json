@@ -1,0 +1,37 @@
+{
+    "name": "iprotek/account",
+    "description": "Application management and access of iprotek",
+    "keywords": ["laravel", "plugin", "applications"],
+    "authors": [
+        {
+            "name": "Joseph Aguilar",
+            "email": "admin@iprotek.net"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "iProtek\\Account\\": "src/"
+        }
+    },
+    "require": {
+        "php": ">=7.0.0",
+        "illuminate/support": "^8.0|^9.0|^10.0",
+        "textalk/websocket":"^1.5"
+    },
+    "type": "library",  
+    "license": "MIT", 
+    "require-dev": {
+        "phpunit/phpunit": "~6.0 || ~7.0 || ~9.0"
+    },
+    "suggest": {
+        "ext-intl": "Use for login monitoring and activities account in iprotek apps"
+    }, 
+    "extra": {
+        "laravel": {
+            "providers": [
+                "iProtek\\Account\\AccountPackageServiceProvider"
+            ]
+        }
+    },
+    "version": "1.0.0" 
+}
