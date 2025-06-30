@@ -1,6 +1,6 @@
 <?php
 
-namespace iProtek\Apps\Http\Controllers;
+namespace iProtek\Account\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;

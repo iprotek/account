@@ -21,7 +21,6 @@
     "type": "library",  
     "license": "MIT", 
     "require-dev": {
-        "phpunit/phpunit": "~6.0 || ~7.0 || ~9.0"
     },
     "suggest": {
         "ext-intl": "Use for login monitoring and activities account in iprotek apps"
