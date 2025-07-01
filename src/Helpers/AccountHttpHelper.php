@@ -1,19 +1,19 @@
 <?php
 
-namespace iProtek\Apps\Helpers;
+namespace iProtek\Account\Helpers;
 
 use DB; 
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 //use iProtek\Core\Models\UserAdminPayAccount;
 
-class AppsHttpHelper
+class AccountHttpHelper
 {
     //AUTH 
 
     public static function auth_client($token){
         $pay_url = config('iprotek.pay_url');
-        $apps_system_url = config("iprotek_apps.app_system_url");
+        $account_url = config("iprotek_account.url");
         $client_id = config('iprotek.pay_client_id');
         $client_secret = config('iprotek.pay_client_secret'); 
         
@@ -26,7 +26,7 @@ class AppsHttpHelper
         ];
         
         $client = new \GuzzleHttp\Client([
-            'base_uri' => $apps_system_url,
+            'base_uri' => $account_url,
             "http_errors"=>false, 
             "verify"=>false, 
             "curl"=>[
@@ -41,7 +41,7 @@ class AppsHttpHelper
     //CLIENT
     public static function client($token=null, $is_api = false){
         //Preparation of Headers
-        $apps_system_url = config("iprotek_apps.app_system_url");
+        $account_url = config("iprotek_account.url");
         $pay_url = config('iprotek.pay_url');
         $client_id = config('iprotek.pay_client_id');
         $client_secret = config('iprotek.pay_client_secret'); 
@@ -76,7 +76,7 @@ class AppsHttpHelper
             "SYSTEM-URL" => config('iprotek.system')
         ];
         
-        $base_url = $is_api ? $apps_system_url."/api/group/$proxy_id" : $apps_system_url;
+        $base_url = $is_api ? $account_url."/api/group/$proxy_id" : $account_url;
         //Log::error($base_url);
 
         $client = new \GuzzleHttp\Client([
@@ -99,8 +99,8 @@ class AppsHttpHelper
     public static function get_client( $url, $raw_response = false, $error_default = null, $is_api=false){
 
         //PRECHECKING
-        $apps_system_url = config("iprotek_apps.app_system_url");
-        if(!$apps_system_url){
+        $account_url = config("iprotek_account.url");
+        if(!$account_url){
             return [
                 "status"=>0,
                 "message"=>"Application url not set"
@@ -173,13 +173,15 @@ class AppsHttpHelper
 
 
         //PRECHECKING
-        $apps_system_url = config("iprotek_apps.app_system_url");
-        if(!$apps_system_url){
+        $account_url = config("iprotek_account.url");
+        if(!$account_url){
             return [
                 "status"=>0,
                 "message"=>"Application url not set"
             ];
         }
+
+        //return $account_url;
         
         $client = static::client(null, $is_api);
         
