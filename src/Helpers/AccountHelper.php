@@ -12,9 +12,9 @@ class AccountHelper
 
         
         $response = AccountHttpHelper::post_client("api/login-request", [
-            "requestor_origin"=>"",
+            "requestor_origin"=>config("app.url"),
             "requestor_origin_url"=>request()->fullUrl(),
-        ], false);
+        ]);
         //return $request->headers->get('Origin');
         //return ["status"=>1,"message"=>"data"];
         return $response;
