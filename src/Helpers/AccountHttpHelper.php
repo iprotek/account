@@ -5,7 +5,6 @@ namespace iProtek\Account\Helpers;
 use DB; 
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
-//use iProtek\Core\Models\UserAdminPayAccount;
 
 class AccountHttpHelper
 {
@@ -52,7 +51,15 @@ class AccountHttpHelper
         
         if(auth()->check()){
             $user = auth()->user();
-            $pay_account = \iProtek\Core\Models\UserAdminPayAccount::where('user_admin_id', $user->id)->first();
+            $session_id = session()->getId();
+            $pay_account = null;
+
+            if($session_id)
+                $pay_account = \iProtek\Core\Models\UserAdminPayAccount::where(['user_admin_id'=>$user->id, 'browser_session_id'=>$session_id])->first();
+            
+            if(!$pay_account)
+                $pay_account = \iProtek\Core\Models\UserAdminPayAccount::where('user_admin_id', $user->id)->first();
+
             if( $pay_account ){ 
                 $proxy_id = $pay_account->own_proxy_group_id;
                 $pay_app_user_account_id = $pay_account->pay_app_user_account_id;
