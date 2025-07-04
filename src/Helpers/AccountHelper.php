@@ -19,6 +19,7 @@ class AccountHelper
         $response = AccountHttpHelper::post_client("api/login-request", [
             "requestor_origin"=>$request->getSchemeAndHttpHost(),//config("app.url"),
             "requestor_origin_url"=>request()->fullUrl(),
+            "requestor_app_type"=>config('iprotek_account.app_type')
         ]);
         //return $request->headers->get('Origin');
         //return ["status"=>1,"message"=>"data"];
@@ -27,7 +28,16 @@ class AccountHelper
         //return
     }
 
-    public static function verifyLoginRequest($id){
+    public static function verifyLoginRequest($login_request_id, $login_code, $login_account_auth_code){
+        
+        $response = AccountHttpHelper::post_client("api/login-request/render-authorization", [
+            "login_request_id"=>$login_request_id,//config("app.url"),
+            "login_code"=>$login_code,
+            "login_account_auth_code"=>$login_account_auth_code,
+            "target_app_name"=>config('iprotek_account.app_type')
+        ]);
+
+        return $response;
 
     }
 
