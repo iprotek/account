@@ -16,9 +16,13 @@ class AccountHelper
         Log::error($request->url());
         Log::error($request->getSchemeAndHttpHost());
         */
+        $origin = (config('session.secure') ? "https" : "http")."://".$request->getHost();
+        $fullUrl = (config('session.secure') ? "https" : "http")."://".$request->getHost().request()->getRequestUri();
+
+
         $response = AccountHttpHelper::post_client("api/login-request", [
-            "requestor_origin"=>$request->getSchemeAndHttpHost(),//config("app.url"),
-            "requestor_origin_url"=>request()->fullUrl(),
+            "requestor_origin"=>$origin,//config("app.url"),
+            "requestor_origin_url"=>$fullUrl,
             "requestor_app_type"=>config('iprotek_account.app_type')
         ]);
         //return $request->headers->get('Origin');
