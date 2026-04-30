@@ -9,10 +9,15 @@ Route::middleware(['web'])->group(function(){
  
     Route::middleware(['auth:admin'])->prefix('manage')->name('manage')->group(function(){
         
-        Route::prefix('apps')->name('.apps')->group(function(){
+        Route::prefix('apps')->name('.account')->group(function(){
 
             //GET APP LISTS BASED ON THE LINK
-            Route::get('list',[AppsController::class, 'list'])->name('.list');
+            Route::get('list',[ 
+                "uses"=>[AppsController::class, 'list'],
+                "description"=>"List of apps",
+                "is_visible"=>false,
+                "is_allow"=>true
+            ])->name('.list');
             
         }); 
 
