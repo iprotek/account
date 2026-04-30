@@ -12,12 +12,11 @@ Route::middleware(['web'])->group(function(){
         Route::prefix('apps')->name('.account')->group(function(){
 
             //GET APP LISTS BASED ON THE LINK
-            Route::get('list',[ 
-                "uses"=>[AppsController::class, 'list'],
-                "description"=>"List of apps",
-                "is_visible"=>false,
-                "is_allow"=>true
-            ])->name('.list');
+            Route::get('list', [AppsController::class, 'list'])
+                ->defaults("description","List of apps")
+                ->defaults("is_visible",false)
+                ->defaults("is_allow",true)
+                ->name('.list');
             
         }); 
 
