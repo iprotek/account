@@ -8,11 +8,11 @@
 
 The `iprotek/account` package acts as the integration and authorization layer between your Laravel application and the external **iProtek Account System** (e.g., `account.iprotek.net`). 
 
-It functions similarly to OAuth-style external identity providers (like Google or GitHub Sign-In), allowing your application to securely delegate user authentication and retrieve authorized user profile/session details.
+It functions similarly to OAuth-style external identity providers (like Google or GitHub Sign-In), allowing your application to securely delegate user authentication and retrieve authorized user profiles and session details.
 
 ---
 
-## Architecture Flow
+## Architecture & Flow
 
 The package facilitates a secure handshake flow between the client browser, the local application session, and the iProtek authorization server:
 
@@ -32,19 +32,31 @@ The package facilitates a secure handshake flow between the client browser, the 
 |             |                                  > +-------------------------+
 |             |                                 /           |
 |             |         Submit Handshake Auth  /            | Exchange Token
-|             | ----------------------------->/             v
+|             | ------------------------------>/             v
 |             |                               |    +-------------------------+
 |             | <---------------------------- |    |   Application Session   |
 |             |       Establish Session       |    |      & Permissions      |
 +-------------+                               +-------------------------+
 ```
 
-1. **Initialize Handshake**: The browser loads the login page, initiating a request helper (`AccountHelper::submitLoginRequest`).
-2. **Retrieve Handshake Code**: The local app requests a transient handshake token from `account.iprotek.net` and renders a hidden validation form.
-3. **Open Popup**: The browser opens an authorization popup pointing to `account.iprotek.net` with the transient handshake token.
-4. **Authorize User**: The user logs in and authorizes the application on `account.iprotek.net`.
-5. **postMessage Callback**: The popup sends the authorization verification code back to the parent page via HTML5 `window.postMessage`.
-6. **Token Exchange**: The parent page submits the form to the local app, which calls `AccountHelper::verifyLoginRequest` to securely exchange the verification code for the user profile, default proxy groups, and access tokens.
+### Layer Responsibilities
+
+* **Application (Local)**: 
+  * Renders the login user interface.
+  * Handles communication with the popup window (via HTML5 `window.postMessage`).
+  * Establishes and manages the local user login session after authentication.
+* **iProtek Account Package (Integration Layer)**:
+  * Encapsulates communication with the authorization API.
+  * Constructs Guzzle HTTP clients pre-configured with client IDs, secrets, and authorization headers.
+  * Translates raw API responses into developer-friendly array structures.
+* **account.iprotek.net (Central Auth Source)**:
+  * Performs user credential verification.
+  * Manages user permission consents and authorization records.
+  * Issues transient handshake codes and verification tokens.
+* **Authorization Response**:
+  * The secure data structure returned to the package containing verified profile information, default proxy groups, and access tokens.
+* **Application Session / Permissions**:
+  * The resulting state where the user is logged into the local guard session, and access tokens are saved for subsequent API calls.
 
 ---
 
@@ -66,7 +78,7 @@ The package facilitates a secure handshake flow between the client browser, the 
        }
    ]
    ```
-2. Install the package using composer:
+2. Install the package using Composer:
    ```bash
    composer require iprotek/account
    ```
@@ -78,20 +90,15 @@ The package facilitates a secure handshake flow between the client browser, the 
 
 The package relies on environment variables mapped to Laravel configuration keys. Configure these in your application's `.env` file:
 
-```ini
-# External iProtek Account System endpoint
-IPROTEK_ACCOUNT_URL=https://account.iprotek.net
-
-# Application identification type (e.g., ERP, CLIENT, ADMIN)
-PAY_IPROTEK_TYPE=YOUR_APP_TYPE
-
-# Shared System and Client IDs for signing/validating API requests
-IPROTEK_PAY_URL=https://pay.iprotek.net
-IPROTEK_PAY_CLIENT_ID=your_client_id
-IPROTEK_PAY_CLIENT_SECRET=your_client_secret
-IPROTEK_SYSTEM_ID=your_system_id
-IPROTEK_SYSTEM_URL=your_system_url
-```
+| Environment Variable | Configuration Key | Description |
+|---|---|---|
+| `IPROTEK_ACCOUNT_URL` | `iprotek_account.url` | Central iProtek Account System endpoint (e.g. `https://account.iprotek.net`) |
+| `PAY_IPROTEK_TYPE` | `iprotek_account.app_type` | Identification name of your application (e.g. `ERP`, `CLIENT`, `ADMIN`) |
+| `IPROTEK_PAY_URL` | `iprotek.pay_url` | Base URL of the billing/payment gateway integration |
+| `IPROTEK_PAY_CLIENT_ID` | `iprotek.pay_client_id` | Client ID registered with the payment/auth gateway |
+| `IPROTEK_PAY_CLIENT_SECRET` | `iprotek.pay_client_secret` | Client secret registered with the payment/auth gateway |
+| `IPROTEK_SYSTEM_ID` | `iprotek.system_id` | Centralized system identifier |
+| `IPROTEK_SYSTEM_URL` | `iprotek.system` | Centralized system URL |
 
 ---
 
@@ -116,7 +123,7 @@ public function showLoginForm(Request $request)
         ]);
     }
 
-    // Handle handshake failure
+    // Handle handshake failure gracefully
     return view('auth.login')->withErrors(['connection' => 'Unable to connect to login provider.']);
 }
 ```
