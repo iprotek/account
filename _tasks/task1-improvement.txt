@@ -1,0 +1,71 @@
+Task: Refactor and Improve packages/iprotek/account
+
+Objective:
+Improve the readability, maintainability, and developer experience of the packages/iprotek/account package without reverse engineering, changing, or exposing the underlying authorization design.
+
+Context:
+This package is responsible for integrating the iProtek account authorization system with an external API account source (for example account.iprotek.net). The concept is similar to how applications integrate with external identity providers (for example, an application requesting authorization from a Google account service).
+
+The package should be treated as an authorization/account integration layer.
+
+Focus Areas:
+
+Code Readability
+Improve naming consistency.
+Simplify complex logic where possible.
+Add meaningful comments explaining purpose, not implementation secrets.
+Improve class, method, and variable organization.
+Remove unnecessary duplication.
+Package Structure
+Review the current folder structure.
+Suggest improvements for better separation of concerns.
+Keep existing public APIs and behavior compatible.
+Do not break existing integrations.
+Authorization Integration Layer
+Improve clarity around responsibilities such as:
+API communication with the account service.
+Token/session handling.
+Authorization requests.
+Account information retrieval.
+Error handling and validation.
+
+The package should clearly communicate the flow:
+
+Application
+↓
+iProtek Account Package
+↓
+Account API Source (account.iprotek.net)
+↓
+Authorization Response
+↓
+Application Session / Permissions
+
+Documentation
+Add or improve documentation:
+Explain how another developer should use this package.
+Explain configuration requirements.
+Explain expected API interactions at a high level.
+Provide usage examples if appropriate.
+Security Preservation
+Important:
+Do not reverse engineer security mechanisms.
+Do not weaken existing validation.
+Do not remove token/session protections.
+Do not expose sensitive implementation details.
+Preserve current authentication and authorization behavior.
+Refactoring Rules
+Before changing code:
+Understand the existing purpose of each component.
+Preserve backward compatibility.
+Prefer incremental improvements.
+Do not replace the architecture unless there is a clear maintenance benefit.
+
+Expected Output:
+  Summary of current package responsibilities.
+  Identified readability and maintainability issues.
+  Proposed improvements.
+  Updated code changes.
+  Migration notes if any behavior changes are required.
+
+The goal is to make packages/iprotek/account easier for developers to understand and maintain while keeping the original authorization architecture intact.

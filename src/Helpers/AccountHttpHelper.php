@@ -2,201 +2,238 @@
 
 namespace iProtek\Account\Helpers;
 
-use DB; 
+use GuzzleHttp\Client;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Http\Request;
 
+/**
+ * Helper class for handling HTTP requests to the iProtek Account System.
+ *
+ * This class wraps a Guzzle HTTP client with appropriate authorization headers,
+ * proxy groups, and credentials to communicate with the central account API.
+ */
 class AccountHttpHelper
 {
-    //AUTH 
-
-    public static function auth_client($token){
-        $pay_url = config('iprotek.pay_url');
-        $account_url = config("iprotek_account.url");
-        $client_id = config('iprotek.pay_client_id');
-        $client_secret = config('iprotek.pay_client_secret'); 
+    /**
+     * Creates a Guzzle client pre-configured for token-based authentication.
+     *
+     * @param string $token The API access token.
+     * @return Client
+     */
+    public static function auth_client($token)
+    {
+        $payUrl = config('iprotek.pay_url');
+        $accountUrl = config("iprotek_account.url");
+        $clientId = config('iprotek.pay_client_id');
+        $clientSecret = config('iprotek.pay_client_secret'); 
         
         $headers = [
-            "Accept"=>"application/json",
-            "CLIENT-ID"=>$client_id,
-            "SECRET"=>$client_secret,
-            "PAY-URL"=>$pay_url,
-            "Authorization"=>"Bearer ",$token
+            "Accept"        => "application/json",
+            "CLIENT-ID"     => $clientId,
+            "SECRET"        => $clientSecret,
+            "PAY-URL"       => $payUrl,
+            "Authorization" => "Bearer " . $token
         ];
         
-        $client = new \GuzzleHttp\Client([
-            'base_uri' => $account_url,
-            "http_errors"=>false, 
-            "verify"=>false, 
-            "curl"=>[
-                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_2_0, // Specify HTTP/2
+        return new Client([
+            'base_uri'    => $accountUrl,
+            "http_errors" => false, 
+            "verify"      => false, 
+            "curl"        => [
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_2_0,
             ],
-            "headers"=>$headers
-         ]);
-        return $client;
-
+            "headers"     => $headers
+        ]);
     }
 
-    //CLIENT
-    public static function client($token=null, $is_api = false){
-        //Preparation of Headers
-        $account_url = config("iprotek_account.url");
-        $pay_url = config('iprotek.pay_url');
-        $client_id = config('iprotek.pay_client_id');
-        $client_secret = config('iprotek.pay_client_secret'); 
- 
+    /**
+     * Creates a Guzzle client configured with the current user session and app credentials.
+     *
+     * It appends application identity headers and the user's access token if logged in.
+     *
+     * @param string|null $token Optional explicit access token.
+     * @param bool $isApi Whether this is a group API request.
+     * @return Client
+     */
+    public static function client($token = null, $isApi = false)
+    {
+        $accountUrl = config("iprotek_account.url");
+        $payUrl = config('iprotek.pay_url');
+        $clientId = config('iprotek.pay_client_id');
+        $clientSecret = config('iprotek.pay_client_secret'); 
 
-        $proxy_id = 0;
-        $pay_app_user_account_id = 0;
+        $proxyId = 0;
+        $payAppUserAccountId = 0;
         
-        if(auth()->check()){
+        if (auth()->check()) {
             $user = auth()->user();
-            $session_id = session()->getId();
-            $pay_account = null;
+            $sessionId = session()->getId();
+            $payAccount = null;
 
-            if($session_id)
-                $pay_account = \iProtek\Core\Models\UserAdminPayAccount::where(['user_admin_id'=>$user->id, 'browser_session_id'=>$session_id])->first();
+            if ($sessionId && class_exists('\iProtek\Core\Models\UserAdminPayAccount')) {
+                $payAccount = \iProtek\Core\Models\UserAdminPayAccount::where([
+                    'user_admin_id'      => $user->id,
+                    'browser_session_id' => $sessionId
+                ])->first();
+            }
             
-            if(!$pay_account)
-                $pay_account = \iProtek\Core\Models\UserAdminPayAccount::where('user_admin_id', $user->id)->first();
+            if (!$payAccount && class_exists('\iProtek\Core\Models\UserAdminPayAccount')) {
+                $payAccount = \iProtek\Core\Models\UserAdminPayAccount::where('user_admin_id', $user->id)->first();
+            }
 
-            if( $pay_account ){ 
-                $proxy_id = $pay_account->own_proxy_group_id;
-                $pay_app_user_account_id = $pay_account->pay_app_user_account_id;
-                $token = $token ?: $pay_account->access_token;
+            if ($payAccount) { 
+                $proxyId = $payAccount->own_proxy_group_id;
+                $payAppUserAccountId = $payAccount->pay_app_user_account_id;
+                $token = $token ?: $payAccount->access_token;
             }
         }
 
-
         $headers = [
-            "Accept"=>"application/json",
-            'Content-Type' => 'application/json',
-            "CLIENT-ID"=>$client_id,
-            "SECRET"=>$client_secret,
-            "PAY-URL"=>$pay_url,
-            "SOURCE-URL"=>config('app.url'),
-            "SOURCE-NAME"=>config('app.name'),
-            "PAY-USER-ACCOUNT-ID"=>$pay_app_user_account_id."",
-            "PAY-PROXY-ID"=>$proxy_id,
-            "Authorization"=>"Bearer ".($token?:""),
-            "SYSTEM-ID" => config('iprotek.system_id'), 
-            "SYSTEM-URL" => config('iprotek.system')
+            "Accept"              => "application/json",
+            'Content-Type'        => 'application/json',
+            "CLIENT-ID"           => $clientId,
+            "SECRET"              => $clientSecret,
+            "PAY-URL"             => $payUrl,
+            "SOURCE-URL"          => config('app.url'),
+            "SOURCE-NAME"         => config('app.name'),
+            "PAY-USER-ACCOUNT-ID" => $payAppUserAccountId . "",
+            "PAY-PROXY-ID"        => $proxyId,
+            "Authorization"       => "Bearer " . ($token ?: ""),
+            "SYSTEM-ID"           => config('iprotek.system_id'), 
+            "SYSTEM-URL"          => config('iprotek.system')
         ];
         
-        $base_url = $is_api ? $account_url."/api/group/$proxy_id" : $account_url;
-        //Log::error($base_url);
+        $baseUrl = $isApi ? $accountUrl . "/api/group/$proxyId" : $accountUrl;
 
-        $client = new \GuzzleHttp\Client([
-            'base_uri' => $base_url,
-            "http_errors"=>false, 
-            "verify"=>false, 
-            "curl"=>[
-                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_2_0, // Specify HTTP/2
+        return new Client([
+            'base_uri'    => $baseUrl,
+            "http_errors" => false, 
+            "verify"      => false, 
+            "curl"        => [
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_2_0,
             ],
-            "headers"=>$headers
-         ]);
-        return $client;
-
+            "headers"     => $headers
+        ]);
     }
-    /**
-     * $url - required
-     * $raw_response - true actual response / false modified formatted response
-     * $error_default - if the result is not OK then it will return the error_default value
-     */
-    public static function get_client( $url, $raw_response = false, $error_default = null, $is_api=false){
 
-        //PRECHECKING
-        $account_url = config("iprotek_account.url");
-        if(!$account_url){
+    /**
+     * Performs a GET request to the account service.
+     *
+     * @param string $url The endpoint URL.
+     * @param bool $rawResponse Whether to return the raw Guzzle Response object.
+     * @param mixed $errorDefault Default fallback result on failure.
+     * @param bool $isApi Whether this is a group API request.
+     * @return array|\GuzzleHttp\Psr7\Response
+     */
+    public static function get_client($url, $rawResponse = false, $errorDefault = null, $isApi = false)
+    {
+        $accountUrl = config("iprotek_account.url");
+        if (!$accountUrl) {
             return [
-                "status"=>0,
-                "message"=>"Application url not set"
+                "status"  => 0,
+                "message" => "Application url not set"
             ];
         }
         
-        $client = static::client(null, $is_api);
-        
+        $client = static::client(null, $isApi);
         $response = $client->get($url);
-        return static::response_result($response, $raw_response, $error_default);
+        
+        return static::response_result($response, $rawResponse, $errorDefault);
     }
 
-    public static function get_api_client($url, $raw_response = false, $error_default = null){
-        return static::get_client( $url, $raw_response , $error_default, true);
+    /**
+     * Performs a GET request on the group API endpoint.
+     *
+     * @param string $url The endpoint URL.
+     * @param bool $rawResponse Whether to return the raw Guzzle Response object.
+     * @param mixed $errorDefault Default fallback result on failure.
+     * @return array|\GuzzleHttp\Psr7\Response
+     */
+    public static function get_api_client($url, $rawResponse = false, $errorDefault = null)
+    {
+        return static::get_client($url, $rawResponse, $errorDefault, true);
     }
 
-    public static function response_result( $response, $raw_response, $error_default){
-        $response_code = $response->getStatusCode(); 
-        if($raw_response){
-            if($response_code != 200 && $response_code != 201){
-                if($error_default){
-                    return $error_default;
+    /**
+     * Parses the HTTP response into a standardized result format.
+     *
+     * @param \GuzzleHttp\Psr7\Response $response Guzzle HTTP response.
+     * @param bool $rawResponse Whether to return the raw response object.
+     * @param mixed $errorDefault Default fallback if response is not successful.
+     * @return array|\GuzzleHttp\Psr7\Response
+     */
+    public static function response_result($response, $rawResponse, $errorDefault)
+    {
+        $statusCode = $response->getStatusCode(); 
+        
+        if ($rawResponse) {
+            if ($statusCode != 200 && $statusCode != 201) {
+                if ($errorDefault) {
+                    return $errorDefault;
                 }
             }
             return $response;
         } 
 
-        if($response_code != 200 && $response_code != 201){
-            if(!$error_default){
-                $result = $response->getBody();
-                if($result){
-                    return response()->json($result, $response_code);
-                    /*
-                    return [
-                        "status"=>0,
-                        "result"=> json_decode($response->getBody(), true),
-                        "Api Invalidated."
-                    ];
-                    */ 
-                }
-                return [
-                    "status"=>0,
-                    "result"=>[],
-                    "Api Invalidated."
-                ];
-            }
+        if ($statusCode != 200 && $statusCode != 201) {
+            $bodyContent = (string) $response->getBody();
+            $decodedBody = json_decode($bodyContent, true);
+            
             return [
-                "status"=>0,
-                "result"=> $error_default,
-                "Api Invalidated."
-            ]; 
-        }
-        $result = json_decode($response->getBody(), true);
-        return [
-            "status"=>1, 
-            "result"=> $result,
-            "message"=>"Api Successful."
-        ];
-
-    }
-
-    public static function post_client($url, $body, $raw_response = false, $error_default = null, $is_api = false){
-
-        if(is_array($body)){
-            $body = json_encode($body);
-        }
-        else if(is_object($body)){
-            $body = json_encode($body);
-        }
-
-
-        //PRECHECKING
-        $account_url = config("iprotek_account.url");
-        if(!$account_url){
-            return [
-                "status"=>0,
-                "message"=>"Application url not set"
+                "status"  => 0,
+                "result"  => $decodedBody ?: ($errorDefault ?: []),
+                "message" => "Api Invalidated."
             ];
         }
 
-        //return $account_url;
-        
-        $client = static::client(null, $is_api);
-        
-        $response = $client->post($url, ["body"=>$body]);
-        return static::response_result($response, $raw_response, $error_default);
-    }
-    public static function post_api_client($url, $body, $raw_response = false, $error_default = null){
-        return static::post_client($url, $body, $raw_response, $error_default, true);
+        $decodedBody = json_decode((string) $response->getBody(), true);
+        return [
+            "status"  => 1, 
+            "result"  => $decodedBody,
+            "message" => "Api Successful."
+        ];
     }
 
+    /**
+     * Performs a POST request to the account service.
+     *
+     * @param string $url The endpoint URL.
+     * @param array|object|string $body The request payload.
+     * @param bool $rawResponse Whether to return the raw Guzzle Response object.
+     * @param mixed $errorDefault Default fallback result on failure.
+     * @param bool $isApi Whether this is a group API request.
+     * @return array|\GuzzleHttp\Psr7\Response
+     */
+    public static function post_client($url, $body, $rawResponse = false, $errorDefault = null, $isApi = false)
+    {
+        if (is_array($body) || is_object($body)) {
+            $body = json_encode($body);
+        }
+
+        $accountUrl = config("iprotek_account.url");
+        if (!$accountUrl) {
+            return [
+                "status"  => 0,
+                "message" => "Application url not set"
+            ];
+        }
+        
+        $client = static::client(null, $isApi);
+        $response = $client->post($url, ["body" => $body]);
+        
+        return static::response_result($response, $rawResponse, $errorDefault);
+    }
+
+    /**
+     * Performs a POST request on the group API endpoint.
+     *
+     * @param string $url The endpoint URL.
+     * @param array|object|string $body The request payload.
+     * @param bool $rawResponse Whether to return the raw Guzzle Response object.
+     * @param mixed $errorDefault Default fallback result on failure.
+     * @return array|\GuzzleHttp\Psr7\Response
+     */
+    public static function post_api_client($url, $body, $rawResponse = false, $errorDefault = null)
+    {
+        return static::post_client($url, $body, $rawResponse, $errorDefault, true);
+    }
 }
